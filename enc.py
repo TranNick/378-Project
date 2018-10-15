@@ -1,27 +1,31 @@
 import os 
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import padding
 
 backend=default_backend()
-message=b"a secret message"
+message=b"a secret message for padding "
 key=os.urandom(32)
 iv=os.urandom(16)
 path='/home/nick/Downloads/378/text.txt'
 
-def myEncryptor(message):
-    if len(key)<32:
-        print("Key is too short")
-    else:
-        cipher=Cipher(algorithms.AES(key), modes.CBC(iv), backend=backend)
-        encrypt=cipher.encryptor()
-        cipherText=encrypt.update(message) + encrypt.finalize()
-        return cipherText
+def myEncryptor(text):
+    padder=padding.PKCS7(128).padder()
+    paddedText=padder.update(text) 
+    paddedText+=padder.finalize()
+    cipher=Cipher(algorithms.AES(key), modes.CBC(iv), backend=backend)
+    encrypt=cipher.encryptor()
+    cipherText=encrypt.update(paddedText) + encrypt.finalize()
+    print("Padded text: ", paddedText)
+    return cipherText
 
 def myDecryptor(cipherText):
     cipher=Cipher(algorithms.AES(key), modes.CBC(iv), backend=backend)
     decrypt=cipher.decryptor()
     cipherText=decrypt.update(cipherText) + decrypt.finalize()
-    return cipherText
+    unpadder=padding.PKCS7(128).unpadder()
+    unpaddedText=unpadder.update(cipherText) + unpadder.finalize()
+    return unpaddedText
 
 def myFileEncryptor():
     with open(path, 'r') as file:
